@@ -1,0 +1,83 @@
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0 4px;
+}
+
+/* Create two equal columns that sits next to each other */
+.column {
+  flex: 50%;
+  padding: 0 4px;
+}
+
+.column img {
+  margin-top: 8px;
+  vertical-align: middle;
+}
+
+body {
+    background-color: #BBBBBB;
+}
+
+#timeline {
+    background-color: #EFEFEF;
+}
+
+.login{
+  margin-left:520px;
+  margin-top:200px;
+}
+
+.border{
+  border: 1px solid rgba(0,0,0,0.2);
+  border-radius: 2px;
+  padding:20px 10px 10px;
+  background-color: rgba(0,0,0,0.05);
+}
+
+input[type=text],input[type=password],input[type=submit]{
+  display:block;
+  margin-bottom: 10px;
+  border-radius: 2px;
+  border: 1px solid rgba(0,0,0,0.2);
+  padding:5px;
+  box-shadow:inset rgba(38,39,42,0.09) 0 1px 4px;
+  font-family:Ubuntu;
+}
+
+.box{
+  border: 1px solid rgba(0,0,0,0.2);
+  display:inline-block;
+  border-radius: 2px;
+  padding:50px 30px 30px;
+  background-color: rgba(0,0,0,0.05);
+}
+
+video[poster]{
+    object-fit:fill
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto; /* 15% from the top and centered */
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%; /* Could be more or less, depending on screen size */
+  z-index: 2;
+}
+
+
+
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 2; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+

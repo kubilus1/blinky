@@ -1,0 +1,13 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
+    </head>
+    <body>
+        <h3>Kindly login to your Blink account.</h3>
+        <form class="box login" action="{{ url_for('login') }}" method="post">
+            <input type="text" name="username" id="" class="" placeholder="username"/>
+            <input type="password" name="password" id="" class="" placeholder="password"/>
+            <input type="submit" value="Login" >
+        </form>
+    </body>
+</html>

@@ -1,0 +1,199 @@
+<html>
+    <head>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+        <script src="https://visjs.org/dist/vis.js"></script>
+        <link href="https://visjs.org/dist/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
+    </head>
+    <body>
+        <div class="header">
+            <h3> Blinker Dashboard
+            <button title="reload dashboard" style="border: none;" onclick="reload()">&#8634;</button>
+            </h3>
+        </div>
+        <div id="camera_dialog" class="modal"></div>
+        <div class="blinks row">
+                {% for camera in cameras %}
+            <div>
+                <div class="border camera column">
+                    {{ camera.module}} - {{ camera.name }}
+                    <button class="refresh_cam" title="refresh camera thumbnail"
+                                style="border: none;"
+                                onclick="refresh_cam('{{ camera.name }}')">&#8634;</button>
+                    <button title="camera details" style="border: none;"
+                         onclick="cam_details('{{ camera.name }}')">Camera Details</button>
+                    <br>
+                    <!--<img height="300px" class="thumbnail" src="{{
+                        camera.thumbnail }}"></img>-->
+                    <video id="vid_{{ loop.index0 }}"
+                                          height="350px" width="623px"
+                        poster="{{ camera.thumbnail }}">
+                        <source src="." type="video/mp4">
+                    </video>
+                </div>
+            </div>
+                {% endfor %}
+        </div>
+
+        <div id="timeline" class="border timeline">
+        </div>
+
+<script type="text/javascript">
+
+    var container = document.getElementById('timeline');
+
+    var group_map = {};
+    {% for c in cameras %}
+    group_map['{{ c.name }}'] = {{ loop.index0 }};
+    {% endfor %}
+
+    var items = new vis.DataSet([
+        { id: 0, start: Date.now() }
+    ]);
+
+    var groups = new vis.DataSet([
+        {% for c in cameras %}
+        { id: {{ loop.index0 }}, content: "{{ c.name }}" },
+        {% endfor %}
+    ]);    
+
+    var options={
+      minHeight: '500px',
+      height: '33%',
+      zoomMin: 1000 * 60 * 30,
+      zoomMax: 1000 * 60 * 60 * 24 * 7,
+      /*rollingMode: {
+          follow: true,
+          offset: 0.5
+      },
+      rtl: false*/
+    };
+
+    var timeline = new vis.Timeline(container, items, groups, options);
+    //var timeline = new vis.Timeline(container, items, options);
+
+    //timeline.toggleRollingMode();
+
+    timeline.on("click", function(properties) {
+        console.log(properties);
+        if(properties.item) {
+            $.ajax({
+                type: "GET",
+                url: "{{ url_for('show_vid') }}",
+                data: {
+                    'vid_id': properties.item,
+                    'group_id': properties.group
+                },
+                async: true,
+                success: function(data) {
+                    console.log("Play video: " + data.vid_path);
+                    console.log("Camera ID: " + data.group_id);
+
+                    var video = document.getElementById('vid_' + data.group_id);
+                    var source = '<source src="' + data.vid_path + '" type="video/mp4">';
+                    video.innerHTML = source;
+
+                    video.oncanplay = function() {
+                        console.log("Ready to play video.");
+                        video.setAttribute("controls", "controls");
+                        video.play();
+                    };
+                }
+            });
+        } else {
+            for (var i = 0; i < groups.length; i++) {
+                var video = document.getElementById('vid_' + i);
+                if (video.hasAttribute("controls")) {
+                    video.removeAttribute("controls");
+                }
+                video.innerHTML = '<source src="." type="video/mp4">';
+                video.load();
+            }
+        }
+    });
+
+    function fetch_vids() {
+        $.ajax({
+            type: "GET",
+            url: "{{ url_for('get_vids') }}",
+            async: true,
+            success: function(data) {
+                var vids = JSON.parse(data);
+                console.log("GOT VIDS: " + vids.items);
+                //var items = new vis.DataSet([
+                items.clear();
+                for (var i = 0; i < vids.items.length; i++) {
+                    var item = vids.items[i];
+                    //console.log(item);
+                    items.add(
+                        {id: item.id, type:"range", group: group_map[item.device_name], content: item.device_name + " " + item.id, start: item.created_at, end: item.updated_at}
+                    );
+                }
+                console.log(items);
+                timeline.setItems(items);
+                timeline.redraw();
+                console.log("UPDATED");
+                //timeline = new vis.Timeline(container, items, groups, options);
+            },
+            complete: function(data) {
+                setTimeout(fetch_vids, 30000);
+            }
+        });
+    }
+
+    $(document).ready(function(){
+        setTimeout(fetch_vids, 1000);
+    });
+
+function reload() {
+    $.ajax({
+        type: "GET",
+        url: "{{ url_for('reload') }}",
+        async: true
+    });
+}
+
+function refresh_cam(cam_name) {
+    $('.refresh_cam').attr('disabled', true);
+    $('.refresh_cam').text('please wait.');
+    $.ajax({
+        type: "GET",
+        data: {
+            "cam_name": cam_name
+        },
+        url: "{{ url_for('refresh_cam') }}",
+        async: true,
+        complete: function() {
+            setTimeout(reload, 5000);
+        }
+    });
+}
+
+function cam_details(cam_name) {
+    $.ajax({
+        type: "GET",
+        data: {
+            "cam_name": cam_name
+        },
+        url: "{{ url_for('cam_details') }}",
+        async: true,
+        success: function(data) {
+            console.log(data);
+            $('#camera_dialog').html(data);
+            $('#camera_dialog').css("display", "block");
+        }
+    });
+}
+
+var modal = document.getElementById("camera_dialog");
+window.onclick = function(event) {
+    console.log(event);
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+
+</script>
+
+    </body>
+</html>
