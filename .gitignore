@@ -1,2 +1,6 @@
 *.mp4
 *.jpg
+.cache
+*.pyc
+*~
+*.swp
