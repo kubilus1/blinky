@@ -1,2 +1,2 @@
-# blinker
+# blinky
 The Blink Camera Dashboard
