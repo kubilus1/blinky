@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup
 
 setup(
     name = "blinky",
@@ -8,9 +8,12 @@ setup(
     description = "Blinky the Blink camera dashboard.",
     author = "Matt Kubilus",
     packages=['blinky'],
-    scripts=['src/blinky.py'],
-    #package_dir={'.': 'static','templates':'templates'},
     package_dir={'blinky': 'src'},
+    #scripts=['src/blinky'],
+    entry_points = {
+        'console_scripts': ['blinky=blinky.blinky:main'],
+    },
+    #package_dir={'.': 'static','templates':'templates'},
     package_data={
         'blinky': [
             'static/css/*.css',
@@ -18,6 +21,11 @@ setup(
             'templates/*.html'
         ]
     },
+    install_requires=[
+        'pywebview',
+        'blinkpy == 0.14.01',
+        'Flask >= 0.12'
+    ],
     python_requires='>=3'
 
 )

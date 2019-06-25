@@ -15,14 +15,28 @@ from blinkpy import blinkpy
 from blinkpy.helpers.util import BlinkException
 from blinkpy import api as blinkapi
 
-app = Flask(__name__)
+import certifi
 
 blink = blinkpy.Blink()
 cache = {}
+CACHEDIR = os.path.abspath(os.path.expanduser(os.path.join('~',
+    '.blinky_cache')))
+print("CACHEDIR: %s" % CACHEDIR)
+
+import blinky
+PKGDIR = os.path.dirname(os.path.abspath(blinky.__file__))
+print("PKGDIR: %s" % PKGDIR)
+
+app = Flask(
+        __name__, 
+        #template_folder=os.path.join(PKGDIR, 'templates'),
+        #static_folder=os.path.join(PKGDIR, 'static'),
+        root_path=PKGDIR
+)
 
 def do_url(url, headers):
     req = Request(url, headers=headers)
-    resp = urlopen(req)
+    resp = urlopen(req, cafile=certifi.where())
     return resp.read()
 
 @app.route('/reload')
@@ -63,7 +77,9 @@ def show_vid():
     vid_id = request.args.get('vid_id')
     group_id = request.args.get('group_id')
     
-    file_path = "./static/videos/%s.mp4" % vid_id
+    file_path = os.path.join(
+        PKGDIR, "static","videos", "%s.mp4" % vid_id
+    )
 
     if not os.path.isfile(file_path):
         print("Fetching: %s" % vid_id)
@@ -92,6 +108,7 @@ def get_vids():
 @app.route('/blinker/')
 def home():
     if not check_login():
+        print("Forcing login.")
         return render_template('login.html')
 
     camera_list = []
@@ -109,7 +126,7 @@ def home():
             cam_dict['module'] = mod_name    
 
             data = do_url(camera.thumbnail, blink._auth_header)
-            with open("./static/%s.jpg" % camera_name, "wb") as h:
+            with open(os.path.join(PKGDIR, "static", "%s.jpg" % camera_name), "wb") as h:
                 h.write(data)
 
             cam_dict['thumbnail'] = "/static/%s.jpg?t=%s" % (
@@ -136,6 +153,7 @@ def login():
     return resp
 
 def do_login(username, password):
+    print("Do login.")
     blink._username = username
     blink._password = password
     
@@ -151,7 +169,7 @@ def do_login(username, password):
     cache['urls'] = codecs.encode(pickle.dumps(blink.urls), "base64").decode()
     cache['networks'] = blink.networks
 
-    with open(".cache", "w") as h:
+    with open(CACHEDIR, "w") as h:
         h.write(json.dumps(cache))
 
 def check_busy(network_id):
@@ -165,7 +183,7 @@ def check_login():
         ret = blinkapi.request_networks(blink)
     except (BlinkException, AttributeError):
         ret = {}
-    print(ret)
+    print("Networks: %s" % ret)
     if ret:
         return True
     else:
@@ -174,18 +192,24 @@ def check_login():
 def check_health():
     global RUNNING
     while RUNNING:
+        print("Still running.")
+        time.sleep(1)
         if not webview.window_exists(uid="master"):
             RUNNING=False
-        time.sleep(1)
+            print("Not running!")
+            break
 
 def run_app():
-    app.run(host="0.0.0.0", debug=True, threaded=True, use_reloader=False)
+    app.run(host="127.0.0.1", debug=True, threaded=True, use_reloader=False)
+    print("App exiting.")
 
 def load_cached_creds():
-    if not os.path.isfile('.cache'):
+    print("Get cached creds.")
+    if not os.path.isfile(CACHEDIR):
+        print("No cached creds.")
         return
 
-    with open(".cache", "rb") as h:
+    with open(CACHEDIR, "rb") as h:
         cache_json = h.read()
 
     if cache_json:
@@ -216,31 +240,43 @@ def load_cached_creds():
     blink.login = blink._login
         
 
-if __name__ == "__main__":
+def run_web():
+    webview.create_window(
+        "Blinker",
+        "http://127.0.0.1:5000/blinker",
+        #"http://www.google.com",
+        width=1024,
+        height=768,
+        debug=True
+    )
+
+def main():
     global RUNNING
     RUNNING=True
 
     load_cached_creds()
 
     health_t = threading.Thread(target=check_health)
-    health_t.daemon = True
-    health_t.start()
+    #health_t.daemon = True
+    #health_t.start()
 
     app_t = threading.Thread(target=run_app)
     app_t.daemon = True
     app_t.start()
 
+    #app_w = threading.Thread(target=run_web)
+    #app_w.start()
+
     try:
-        webview.create_window(
-            "Blinker",
-            "http://127.0.0.1:5000/blinker",
-            width=1024,
-            height=768,
-            debug=True
-        )
+        run_web()
     except KeyboardInterrupt:
         print("Exiting...")
     finally:
         RUNNING=False
+
         
     print("Good bye!")
+
+
+if __name__ == "__main__":
+    main()
